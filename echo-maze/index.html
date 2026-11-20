@@ -5,20 +5,233 @@
 <meta name="theme-color" content="#0a1118">
 <title>残響迷路</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 25% 0%,#162a36,transparent 55%),#0a1118;color:#eaf6fb;font:15px/1.65 system-ui,sans-serif;min-height:100vh}main{max-width:960px;margin:auto;padding:clamp(20px,5vw,60px) 20px}header{border-bottom:1px solid #324652;padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:end;gap:10px}.mark{color:#75eddb;font:700 13px monospace;letter-spacing:.26em}h1{font-size:clamp(36px,7vw,68px);letter-spacing:.08em;line-height:1.15;margin:8px 0 0}.stage{display:grid;grid-template-columns:minmax(0,1fr) 265px;gap:22px;align-items:start}.board{position:relative;border:1px solid #355462;border-radius:14px;overflow:hidden;background:#0c171f;padding:12px}canvas{display:block;width:100%;height:auto;border-radius:7px;touch-action:none}.panel{border:1px solid #324652;border-radius:14px;padding:18px;background:#111e28}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding-bottom:14px;border-bottom:1px solid #324652}.stats span{display:block;color:#afc5d0;font-size:11px}.stats strong{font:700 24px monospace;color:#75eddb}p{margin:13px 0}.help{color:#afc5d0;font-size:13px}.status{min-height:49px}button{font:inherit;font-weight:700;border:1px solid #456473;color:#eaf6fb;background:#1a303d;border-radius:8px;min-height:44px;cursor:pointer;touch-action:manipulation}button:focus-visible{outline:3px solid #ffd988;outline-offset:2px}button:disabled{opacity:.42;cursor:default}button:not(:disabled):hover{border-color:#75eddb}.primary{display:block;width:100%;background:#75eddb;color:#09221e;border-color:#75eddb}.secondary{margin-top:8px;width:100%}.keys{display:grid;grid-template-columns:repeat(3,44px);gap:5px;justify-content:center;margin:15px 0 0}.up{grid-column:2}.left{grid-column:1}.legend{display:flex;gap:16px;color:#afc5d0;font-size:12px;margin:9px 2px 0}.legend b{color:#75eddb}.legend span:last-child b{color:#ffd988}footer{margin-top:20px;color:#afc5d0;font-size:13px}@media(max-width:660px){.stage{grid-template-columns:1fr;gap:12px}.board{max-width:470px;margin:auto;width:100%}header{margin-bottom:12px;padding-bottom:12px}.panel{padding:12px}.status{min-height:0}.keys{margin-top:10px}main{padding-top:15px}}
+* {
+  box-sizing:border-box
+}
+body {
+  margin:0;
+  background:radial-gradient(ellipse at 25% 0%,#162a36,transparent 55%),#0a1118;
+  color:#eaf6fb;
+  font:15px/1.65 system-ui,sans-serif;
+  min-height:100vh
+}
+main {
+  max-width:960px;
+  margin:auto;
+  padding:clamp(20px,5vw,60px) 20px
+}
+header {
+  border-bottom:1px solid #324652;
+  padding-bottom:18px;
+  margin-bottom:24px;
+  display:flex;
+  justify-content:space-between;
+  align-items:end;
+  gap:10px
+}
+.mark {
+  color:#75eddb;
+  font:700 13px monospace;
+  letter-spacing:.26em
+}
+h1 {
+  font-size:clamp(36px,7vw,68px);
+  letter-spacing:.08em;
+  line-height:1.15;
+  margin:8px 0 0
+}
+.stage {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 265px;
+  gap:22px;
+  align-items:start
+}
+.board {
+  position:relative;
+  border:1px solid #355462;
+  border-radius:14px;
+  overflow:hidden;
+  background:#0c171f;
+  padding:12px
+}
+canvas {
+  display:block;
+  width:100%;
+  height:auto;
+  border-radius:7px;
+  touch-action:none
+}
+.panel {
+  border:1px solid #324652;
+  border-radius:14px;
+  padding:18px;
+  background:#111e28
+}
+.stats {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+  padding-bottom:14px;
+  border-bottom:1px solid #324652
+}
+.stats span {
+  display:block;
+  color:#afc5d0;
+  font-size:11px
+}
+.stats strong {
+  font:700 24px monospace;
+  color:#75eddb
+}
+p {
+  margin:13px 0
+}
+.help {
+  color:#afc5d0;
+  font-size:13px
+}
+.status {
+  min-height:49px
+}
+button {
+  font:inherit;
+  font-weight:700;
+  border:1px solid #456473;
+  color:#eaf6fb;
+  background:#1a303d;
+  border-radius:8px;
+  min-height:44px;
+  cursor:pointer;
+  touch-action:manipulation
+}
+button:focus-visible {
+  outline:3px solid #ffd988;
+  outline-offset:2px
+}
+button:disabled {
+  opacity:.42;
+  cursor:default
+}
+button:not(:disabled):hover {
+  border-color:#75eddb
+}
+.primary {
+  display:block;
+  width:100%;
+  background:#75eddb;
+  color:#09221e;
+  border-color:#75eddb
+}
+.secondary {
+  margin-top:8px;
+  width:100%
+}
+.keys {
+  display:grid;
+  grid-template-columns:repeat(3,44px);
+  gap:5px;
+  justify-content:center;
+  margin:15px 0 0
+}
+.up {
+  grid-column:2
+}
+.left {
+  grid-column:1
+}
+.legend {
+  display:flex;
+  gap:16px;
+  color:#afc5d0;
+  font-size:12px;
+  margin:9px 2px 0
+}
+.legend b {
+  color:#75eddb
+}
+.legend span:last-child b {
+  color:#ffd988
+}
+footer {
+  margin-top:20px;
+  color:#afc5d0;
+  font-size:13px
+}
+@media(max-width:660px) {
+  .stage {
+    grid-template-columns:1fr;
+    gap:12px
+  }
+  .board {
+    max-width:470px;
+    margin:auto;
+    width:100%
+  }
+  header {
+    margin-bottom:12px;
+    padding-bottom:12px
+  }
+  .panel {
+    padding:12px
+  }
+  .status {
+    min-height:0
+  }
+  .keys {
+    margin-top:10px
+  }
+  main {
+    padding-top:15px
+  }
+}
 </style>
 <main>
-<header><div><div class="mark">ECHO MAZE</div><h1>残響迷路</h1></div></header>
+<header>
+<div>
+<div class="mark">ECHO MAZE</div>
+<h1>残響迷路</h1>
+</div>
+</header>
 <div class="stage">
-<section aria-label="迷路"><div class="board"><canvas id="maze" width="540" height="540" aria-label="ミント色の丸が現在地、金色のひし形が出口"></canvas></div><div class="legend"><span><b>●</b> 現在地</span><span><b>◆</b> 出口</span></div></section>
+<section aria-label="迷路">
+<div class="board">
+<canvas id="maze" width="540" height="540" aria-label="ミント色の丸が現在地、金色のひし形が出口">
+</canvas>
+</div>
+<div class="legend">
+<span>
+<b>●</b> 現在地</span>
+<span>
+<b>◆</b> 出口</span>
+</div>
+</section>
 <section class="panel" aria-label="操作と記録">
-<div class="stats"><div><span>ステージ</span><strong id="level">01</strong></div><div><span>歩数</span><strong id="steps">0</strong></div><div><span>残りエコー</span><strong id="echoes">2</strong></div></div>
+<div class="stats">
+<div>
+<span>ステージ</span>
+<strong id="level">01</strong>
+</div>
+<div>
+<span>歩数</span>
+<strong id="steps">0</strong>
+</div>
+<div>
+<span>残りエコー</span>
+<strong id="echoes">2</strong>
+</div>
+</div>
 <p id="status" class="status" role="status">迷路を覚えて、光が消えたら出口へ。</p>
 <button id="start" class="primary">ゲーム開始</button>
 <button id="echo" class="secondary" disabled>エコーを使う · Space</button>
-<div class="keys" aria-label="方向ボタン"><button class="up" data-dir="0" aria-label="上">↑</button><button class="left" data-dir="3" aria-label="左">←</button><button data-dir="2" aria-label="下">↓</button><button data-dir="1" aria-label="右">→</button></div>
+<div class="keys" aria-label="方向ボタン">
+<button class="up" data-dir="0" aria-label="上">↑</button>
+<button class="left" data-dir="3" aria-label="左">←</button>
+<button data-dir="2" aria-label="下">↓</button>
+<button data-dir="1" aria-label="右">→</button>
+</div>
 <p class="help">矢印キー / WASD / 方向ボタンで移動。エコーを使うと壁が一瞬見える。</p>
-</section></div>
+</section>
+</div>
 <footer>最初の5秒で道を覚えよう。クリアすると、迷路が広がる。</footer>
 </main>
 <script>
@@ -180,3 +393,4 @@ prepare();
 draw();
 </script>
 </html>
+
