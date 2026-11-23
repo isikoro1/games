@@ -80,14 +80,20 @@
     const progress = document.getElementById("progress");
     const trials = document.getElementById("trials");
     const bestLabel = document.getElementById("best");
+    // キーの末尾は保存形式のバージョン。形式を変えるときは既存データの扱いも決める。
     const storageKey = "signal-rush.best-average.v1";
+    // 進行の正本は state と scores。画面表示から状態を推測せず、display() で同期する。
+    // idle → waiting → go → result → waiting。5回完了で complete。
+    // waiting中の入力は early、非表示・フォーカス喪失時は paused。同じ回から再開する。
     let state = "idle";
     let scores = [];
+    // 待機用タイマーと描画フレームは別々に管理し、中断時に両方をキャンセルする。
     let timer = null;
     let animation = null;
     let startedAt = 0;
     let best = null;
 
+    // 保存が禁止された環境や壊れた値でも、ゲームは保存なしで続行できる。
     try {
       const saved = localStorage.getItem(storageKey);
       const value = Number(saved);
@@ -99,6 +105,7 @@
       bestLabel.textContent = best === null ? "ベスト平均 —" : "ベスト平均 " + best + " ms";
     }
 
+    // 状態、配色、表示文、読み上げ用ラベルを一緒に更新する。
     function display(next, heading, description) {
       state = next;
       arena.dataset.state = next;
@@ -107,6 +114,7 @@
       arena.setAttribute("aria-label", heading + "。" + description);
     }
 
+    // scoresだけを元に5枠を再描画。未計測の枠はダッシュで表示する。
     function renderScores() {
       trials.replaceChildren();
       for (let index = 0; index < 5; index++) {
@@ -132,6 +140,7 @@
       animation = null;
     }
 
+    // セッションの記録を初期化する。ブラウザに保存したベストは引き継ぐ。
     function reset() {
       clearPending();
       scores = [];
@@ -140,11 +149,14 @@
       renderScores();
     }
 
+    // フライング後・中断後もscoresを維持し、未完了の回を最初から計測する。
     function beginRound() {
       clearPending();
       display("waiting", "まだ、待て。", "ライム色になったら押す");
       progress.textContent = (scores.length + 1) + " / 5 回目";
       timer = setTimeout(() => {
+        // 合図のDOM更新を描画フレームに合わせ、その直後を計測開始点にする。
+        // 実際の画面表示・入力デバイスの遅延も含むため、遊び用の測定値となる。
         animation = requestAnimationFrame(() => {
           if (state !== "waiting") return;
           display("go", "押せ！", "今！");
@@ -153,6 +165,7 @@
       }, 1600 + Math.random() * 3000);
     }
 
+    // 壁時計の補正に影響されないperformance.now()同士の差で経過時間を測る。
     function finishRound() {
       const elapsed = Math.max(1, Math.round(performance.now() - startedAt));
       scores.push(elapsed);
@@ -163,6 +176,7 @@
         return;
       }
       const average = Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length);
+      // ベストは単発の最速値ではなく、5回の平均値が小さいほど良い。
       const improved = best === null || average < best;
       if (improved) {
         best = average;
@@ -173,6 +187,8 @@
       progress.textContent = "最速 " + Math.min(...scores) + " ms · 平均 " + average + " ms";
     }
 
+    // タップ・キー・支援技術からの入力を、この状態別処理に集約する。
+    // waitingで押してもscoresは増やさず、フライングとして同じ回をやり直す。
     function activate() {
       if (state === "waiting") {
         clearPending();
@@ -187,23 +203,28 @@
       beginRound();
     }
 
+    // 押下時に反応させる。主ポインターの左ボタンだけを受け付ける。
     arena.addEventListener("pointerdown", event => {
       if (!event.isPrimary || event.button !== 0) return;
       event.preventDefault();
       arena.focus({ preventScroll: true });
       activate();
     });
-    // Keyboard and assistive-technology clicks use detail=0.
+    // pointerdown後の通常clickはdetail>0。二重処理を避け、detail=0のクリックだけ扱う。
+    // キー操作は下のkeydownで既定動作を抑止し、支援技術のclickはここから受け付ける。
     arena.addEventListener("click", event => {
       if (event.detail === 0) activate();
     });
     document.addEventListener("keydown", event => {
       if (!["Space", "Enter"].includes(event.code) || event.ctrlKey || event.altKey || event.metaKey) return;
+      // リセットボタン上のEnter/Spaceは、そのボタンの標準操作に任せる。
       if (event.target === document.getElementById("reset")) return;
       event.preventDefault();
       if (!event.repeat) activate();
     });
     document.getElementById("reset").addEventListener("click", reset);
+    // 背景タブでのタイマー間引きや、別画面を見ていた時間が記録に混ざるのを防ぐ。
+    // 既に完了した回のscoresは保持し、待機中・合図表示中の回だけ無効にする。
     document.addEventListener("visibilitychange", () => {
       if (document.hidden && ["waiting", "go"].includes(state)) {
         clearPending();
