@@ -8,6 +8,8 @@
 
 | SIGNAL RUSH | 5回の反射神経を測るワンタップゲーム | [signal-rush](signal-rush/) |
 
+| EMBER ISLE | ピクセル調ローポリ3Dの島を探索するゲーム | [ember-isle](ember-isle/) |
+
 ## 遊び方
 
 各ゲームの `index.html` をブラウザで開く。
