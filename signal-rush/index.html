@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#12130f">
+  <title>SIGNAL RUSH — 反射神経チャレンジ</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root { color-scheme: dark; font-family: "Arial", "Noto Sans JP", sans-serif; }
+    body { margin: 0; background: #12130f; color: #f4f4e9; }
+    main { width: min(960px, 100%); margin: auto; padding: 28px 22px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+    .brand { font-weight: 900; letter-spacing: -.04em; font-size: 24px; }
+    .best { color: #b9bcb0; font-size: 14px; }
+    .intro { margin: 40px 0 24px; }
+    h1 { font-size: clamp(36px, 7vw, 72px); letter-spacing: -.055em; line-height: 1.15; margin: 0 0 14px; }
+    p { font-size: 16px; line-height: 1.8; color: #b9bcb0; }
+    .arena {
+      width: 100%; min-height: 320px; border: 1px solid #414337; border-radius: 24px;
+      background: #23251e; color: #f4f4e9; padding: 28px; display: flex;
+      flex-direction: column; align-items: center; justify-content: center; gap: 15px;
+      cursor: pointer; touch-action: manipulation; user-select: none;
+    }
+    .arena:focus-visible, .reset:focus-visible { outline: 3px solid #d9ff57; outline-offset: 5px; }
+    .arena[data-state="waiting"] { background: #382c25; border-color: #795643; }
+    .arena[data-state="go"] { background: #d9ff57; border-color: #d9ff57; color: #171c08; }
+    .arena[data-state="early"] { background: #662f38; border-color: #b36572; }
+    .orb { width: 64px; height: 64px; border-radius: 50%; border: 2px solid currentColor; opacity: .7; }
+    [data-state="go"] .orb { background: currentColor; }
+    .title { font-size: clamp(30px, 5vw, 54px); font-weight: 900; letter-spacing: -.04em; }
+    .detail { font-size: 16px; opacity: .8; }
+    .bottom { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin: 20px 0; }
+    #progress { color: #b9bcb0; font-size: 14px; }
+    .reset { border: 1px solid #54574a; background: transparent; color: #eee; border-radius: 100px; padding: 10px 20px; cursor: pointer; font-size: 14px; min-height: 44px; }
+    .trials { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .trials li { padding: 18px 12px; border-radius: 12px; border: 1px solid #383b30; }
+    .trials small { display: block; color: #999f8d; margin-bottom: 5px; font-size: 13px; }
+    .trials strong { font-size: 24px; font-variant-numeric: tabular-nums; }
+    .trials span { color: #999f8d; font-size: 12px; }
+    footer { color: #8f9486; font-size: 13px; margin-top: 28px; line-height: 1.8; }
+    @media (max-width: 560px) {
+      main { padding: 20px 16px; }
+      .intro { margin-top: 28px; }
+      .arena { min-height: 300px; border-radius: 18px; }
+      .trials { gap: 5px; }
+      .trials li { padding: 14px 6px; }
+      .trials strong { font-size: 19px; }
+      .best { max-width: 125px; text-align: right; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="brand">SIGNAL RUSH</div>
+      <div class="best" id="best">ベスト平均 —</div>
+    </header>
+    <section class="intro">
+      <h1>考える前に、押せ。</h1>
+      <p>ライム色に変わったらタップ。5回の平均タイムに挑戦。</p>
+    </section>
+    <button class="arena" id="arena" data-state="idle" aria-label="開始する">
+      <span class="orb" aria-hidden="true"></span>
+      <span class="title" id="title">準備はいい？</span>
+      <span class="detail" id="detail">タップ / Space / Enter で開始</span>
+    </button>
+    <div class="bottom">
+      <div id="progress" role="status" aria-live="polite">全5回 · フライングはやり直し</div>
+      <button class="reset" id="reset">最初から</button>
+    </div>
+    <ol class="trials" id="trials" aria-label="5回の計測結果"></ol>
+    <footer>画面の変化と「押せ！」の文字が合図。ベスト平均はこのブラウザに保存。<br>
+      端末や画面の遅延も含む、遊び用の計測です。</footer>
+  </main>
+  <script>
+    const arena = document.getElementById("arena");
+    const title = document.getElementById("title");
+    const detail = document.getElementById("detail");
+    const progress = document.getElementById("progress");
+    const trials = document.getElementById("trials");
+    const bestLabel = document.getElementById("best");
+    const storageKey = "signal-rush.best-average.v1";
+    let state = "idle";
+    let scores = [];
+    let timer = null;
+    let animation = null;
+    let startedAt = 0;
+    let best = null;
+
+    try {
+      const saved = localStorage.getItem(storageKey);
+      const value = Number(saved);
+      if (saved !== null && Number.isFinite(value) && value > 0) best = value;
+    } catch {}
+    showBest();
+
+    function showBest() {
+      bestLabel.textContent = best === null ? "ベスト平均 —" : "ベスト平均 " + best + " ms";
+    }
+
+    function display(next, heading, description) {
+      state = next;
+      arena.dataset.state = next;
+      title.textContent = heading;
+      detail.textContent = description;
+      arena.setAttribute("aria-label", heading + "。" + description);
+    }
+
+    function renderScores() {
+      trials.replaceChildren();
+      for (let index = 0; index < 5; index++) {
+        const item = document.createElement("li");
+        const label = document.createElement("small");
+        const value = document.createElement("strong");
+        label.textContent = (index + 1) + " 回目";
+        value.textContent = scores[index] ?? "—";
+        item.append(label, value);
+        if (scores[index] !== undefined) {
+          const unit = document.createElement("span");
+          unit.textContent = " ms";
+          item.append(unit);
+        }
+        trials.append(item);
+      }
+    }
+
+    function clearPending() {
+      clearTimeout(timer);
+      cancelAnimationFrame(animation);
+      timer = null;
+      animation = null;
+    }
+
+    function reset() {
+      clearPending();
+      scores = [];
+      display("idle", "準備はいい？", "タップ / Space / Enter で開始");
+      progress.textContent = "全5回 · フライングはやり直し";
+      renderScores();
+    }
+
+    function beginRound() {
+      clearPending();
+      display("waiting", "まだ、待て。", "ライム色になったら押す");
+      progress.textContent = (scores.length + 1) + " / 5 回目";
+      timer = setTimeout(() => {
+        animation = requestAnimationFrame(() => {
+          if (state !== "waiting") return;
+          display("go", "押せ！", "今！");
+          startedAt = performance.now();
+        });
+      }, 1600 + Math.random() * 3000);
+    }
+
+    function finishRound() {
+      const elapsed = Math.max(1, Math.round(performance.now() - startedAt));
+      scores.push(elapsed);
+      renderScores();
+      if (scores.length < 5) {
+        display("result", elapsed + " ms", "タップして次の計測へ");
+        progress.textContent = scores.length + " / 5 回 計測済み";
+        return;
+      }
+      const average = Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length);
+      const improved = best === null || average < best;
+      if (improved) {
+        best = average;
+        try { localStorage.setItem(storageKey, String(best)); } catch {}
+        showBest();
+      }
+      display("complete", average + " ms", improved ? "ベスト更新！もう一度挑戦" : "5回の平均。もう一度挑戦");
+      progress.textContent = "最速 " + Math.min(...scores) + " ms · 平均 " + average + " ms";
+    }
+
+    function activate() {
+      if (state === "waiting") {
+        clearPending();
+        display("early", "フライング！", "タップして同じ回をやり直す");
+        return;
+      }
+      if (state === "go") {
+        finishRound();
+        return;
+      }
+      if (state === "complete") reset();
+      beginRound();
+    }
+
+    arena.addEventListener("pointerdown", event => {
+      if (!event.isPrimary || event.button !== 0) return;
+      event.preventDefault();
+      arena.focus({ preventScroll: true });
+      activate();
+    });
+    // Keyboard and assistive-technology clicks use detail=0.
+    arena.addEventListener("click", event => {
+      if (event.detail === 0) activate();
+    });
+    document.addEventListener("keydown", event => {
+      if (!["Space", "Enter"].includes(event.code) || event.ctrlKey || event.altKey || event.metaKey) return;
+      if (event.target === document.getElementById("reset")) return;
+      event.preventDefault();
+      if (!event.repeat) activate();
+    });
+    document.getElementById("reset").addEventListener("click", reset);
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden && ["waiting", "go"].includes(state)) {
+        clearPending();
+        display("paused", "計測を中断", "タップして同じ回から再開");
+      }
+    });
+    window.addEventListener("blur", () => {
+      if (["waiting", "go"].includes(state)) {
+        clearPending();
+        display("paused", "計測を中断", "タップして同じ回から再開");
+      }
+    });
+    renderScores();
+  </script>
+</body>
+</html>
